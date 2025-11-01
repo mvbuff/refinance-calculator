@@ -621,7 +621,8 @@ class ARMCalculatorGUI:
         
         if refinance['new_phase2_months'] > 0:
             new_phase2_start_month = new_phase1_end_month + 1
-            output.append(f"    New Adjustable Period (Months {new_phase2_start_month}-{full_term_months}):")
+            new_phase2_end_month = months_before_refi + full_term_months  # New loan runs for full term
+            output.append(f"    New Adjustable Period (Months {new_phase2_start_month}-{new_phase2_end_month}):")
             output.append(f"      Interest Paid:           ${refinance['interest_new_phase2']:,.2f}")
             output.append(f"      Principal Paid:          ${refinance['principal_new_phase2']:,.2f}")
         output.append("")
