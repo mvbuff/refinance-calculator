@@ -272,7 +272,8 @@ class PrepaymentCalculator:
                                       extra_monthly=0, lump_sums=None,
                                       is_arm=False, arm_fixed_months=0, 
                                       adjustable_rate=None,
-                                      extra_only_during_arm=False):
+                                      extra_only_during_arm=False,
+                                      extra_start_month=1, extra_stop_month=None):
         """Calculate loan with extra payments (supports both fixed-rate and ARM)"""
         if lump_sums is None:
             lump_sums = []
@@ -326,6 +327,14 @@ class PrepaymentCalculator:
             # Add extra monthly payment
             # Check if we should apply extra payment this month
             should_apply_extra = True
+            
+            # Check start/stop month boundaries
+            if month < extra_start_month:
+                should_apply_extra = False
+            if extra_stop_month is not None and month > extra_stop_month:
+                should_apply_extra = False
+            
+            # Check ARM-only constraint
             if extra_only_during_arm and is_arm and month > arm_fixed_months:
                 should_apply_extra = False  # Stop extra payments after ARM fixed period
             
@@ -1077,16 +1086,62 @@ def main():
             if prep_is_arm and extra_monthly_payment > 0:
                 apply_extra_entire_term = st.radio(
                     "Apply extra monthly payments:",
-                    options=["Throughout entire loan term", "Only during ARM fixed period"],
+                    options=["Throughout entire loan term", "Only during ARM fixed period", "Custom date range"],
                     index=0,
                     key="extra_payment_period",
-                    help="Choose whether to continue extra payments after ARM fixed period ends"
+                    help="Choose when to apply extra payments"
                 )
                 
                 if apply_extra_entire_term == "Only during ARM fixed period":
                     st.info(f"💡 Extra monthly payments will stop after month {int(prep_arm_fixed_years * 12)} (end of ARM fixed period)")
             else:
-                apply_extra_entire_term = "Throughout entire loan term"
+                if extra_monthly_payment > 0:
+                    apply_extra_entire_term = st.radio(
+                        "Apply extra monthly payments:",
+                        options=["Throughout entire loan term", "Custom date range"],
+                        index=0,
+                        key="extra_payment_period_fixed",
+                        help="Choose when to apply extra payments"
+                    )
+                else:
+                    apply_extra_entire_term = "Throughout entire loan term"
+            
+            # Custom date range for extra payments
+            if extra_monthly_payment > 0 and apply_extra_entire_term == "Custom date range":
+                st.markdown("**Custom Extra Payment Period**")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    extra_start_month = st.number_input(
+                        "Start Month",
+                        min_value=1,
+                        max_value=int(prep_loan_term_years * 12),
+                        value=1,
+                        step=1,
+                        key="extra_start_month",
+                        help="First month to start making extra payments"
+                    )
+                with col2:
+                    extra_stop_month = st.number_input(
+                        "Stop Month",
+                        min_value=1,
+                        max_value=int(prep_loan_term_years * 12),
+                        value=min(60, int(prep_loan_term_years * 12)),
+                        step=1,
+                        key="extra_stop_month",
+                        help="Last month to make extra payments (leave as-is for no end date)"
+                    )
+                
+                # Validate
+                if extra_stop_month < extra_start_month:
+                    st.error("⚠️ Stop month must be after start month!")
+                else:
+                    duration_months = extra_stop_month - extra_start_month + 1
+                    duration_years = duration_months / 12
+                    st.caption(f"Extra payments from month {extra_start_month} to {extra_stop_month} ({duration_months} months / {duration_years:.1f} years)")
+            else:
+                extra_start_month = 1
+                extra_stop_month = None
             
             st.markdown("---")
             st.subheader("Lump Sum Payments")
@@ -1155,6 +1210,14 @@ def main():
                 # Determine if extra payments should only apply during ARM period
                 extra_only_during_arm = (apply_extra_entire_term == "Only during ARM fixed period")
                 
+                # Set start/stop months based on selection
+                if apply_extra_entire_term == "Custom date range":
+                    final_start_month = int(extra_start_month)
+                    final_stop_month = int(extra_stop_month)
+                else:
+                    final_start_month = 1
+                    final_stop_month = None
+                
                 with st.spinner('Calculating prepayment savings...'):
                     # Calculate regular payment schedule
                     regular = PrepaymentCalculator.calculate_with_extra_payments(
@@ -1166,7 +1229,9 @@ def main():
                         is_arm=prep_is_arm,
                         arm_fixed_months=prep_arm_fixed_months,
                         adjustable_rate=prep_adj_rate_decimal,
-                        extra_only_during_arm=False
+                        extra_only_during_arm=False,
+                        extra_start_month=1,
+                        extra_stop_month=None
                     )
                     
                     # Calculate with extra payments (use only valid lump sums)
@@ -1179,7 +1244,9 @@ def main():
                         is_arm=prep_is_arm,
                         arm_fixed_months=prep_arm_fixed_months,
                         adjustable_rate=prep_adj_rate_decimal,
-                        extra_only_during_arm=extra_only_during_arm
+                        extra_only_during_arm=extra_only_during_arm,
+                        extra_start_month=final_start_month,
+                        extra_stop_month=final_stop_month
                     )
                 
                 # Summary metrics
@@ -1254,7 +1321,9 @@ def main():
                         st.write(f"Base Monthly Payment: {format_currency(with_extra['regular_payment'])}")
                         if extra_monthly_payment > 0:
                             st.write(f"+ Extra Monthly: {format_currency(extra_monthly_payment)}")
-                            if extra_only_during_arm and prep_is_arm:
+                            if apply_extra_entire_term == "Custom date range":
+                                st.caption(f"(Applied from month {final_start_month} to {final_stop_month})")
+                            elif extra_only_during_arm and prep_is_arm:
                                 st.caption(f"(Applied only during ARM fixed period: Months 1-{prep_arm_fixed_months})")
                             else:
                                 st.caption("(Applied throughout loan term)")
@@ -1351,11 +1420,20 @@ def main():
                 
                 # Additional insights
                 with st.expander("💡 Key Insights"):
+                    # Build extra payment period description
+                    if apply_extra_entire_term == "Custom date range":
+                        extra_period_desc = f"months {final_start_month} to {final_stop_month} ({final_stop_month - final_start_month + 1} months / {(final_stop_month - final_start_month + 1)/12:.1f} years)"
+                    elif extra_only_during_arm and prep_is_arm:
+                        extra_period_desc = f"months 1 to {prep_arm_fixed_months} (ARM fixed period only)"
+                    else:
+                        extra_period_desc = "throughout entire loan term"
+                    
                     st.markdown(f"""
                     ### Analysis Results
                     
                     **Your Extra Payments:**
                     - Extra Monthly Payment: {format_currency(extra_monthly_payment)}
+                    - Payment Period: {extra_period_desc}
                     - Number of Lump Sums: {len(valid_lump_sums)}
                     - Total Extra Payments: {format_currency(with_extra['total_extra_payments'])}
                     
