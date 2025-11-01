@@ -9,3 +9,4 @@
      .next/
      dist/
      build/
+     .streamlit/
