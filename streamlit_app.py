@@ -295,6 +295,24 @@ def main():
             help="Your original mortgage principal"
         )
         
+        loan_term_years = st.number_input(
+            "Loan Term (years)",
+            min_value=1,
+            max_value=50,
+            value=30,
+            step=1,
+            help="Total loan term in years (typically 30)"
+        )
+        
+        arm_fixed_years = st.number_input(
+            "ARM Fixed Period (years)",
+            min_value=1,
+            max_value=30,
+            value=7,
+            step=1,
+            help="Number of years at fixed rate before adjustment (e.g., 3, 5, 7, 10)"
+        )
+        
         current_arm_rate = st.number_input(
             "Current ARM Rate (%)",
             min_value=0.0,
@@ -302,7 +320,7 @@ def main():
             value=4.875,
             step=0.001,
             format="%.3f",
-            help="Your current loan's initial fixed rate for years 1-7"
+            help=f"Your current loan's initial fixed rate for years 1-{int(arm_fixed_years)}"
         )
         
         new_arm_rate = st.number_input(
@@ -315,11 +333,13 @@ def main():
             help="The new fixed rate being offered if you refinance"
         )
         
+        arm_fixed_months = int(arm_fixed_years * 12)
+        
         months_before_refi = st.slider(
             "Refinance After (months)",
             min_value=1,
-            max_value=84,
-            value=24,
+            max_value=arm_fixed_months,
+            value=min(24, arm_fixed_months),
             help="When you plan to refinance"
         )
         
@@ -341,9 +361,9 @@ def main():
         )
         
         use_custom_adjustable_rate = st.checkbox(
-            "Use custom rate for Years 8-30",
+            "Use custom rate for adjustable period",
             value=False,
-            help="Use a specific rate for the adjustable period in both scenarios"
+            help=f"Use a specific rate for years {int(arm_fixed_years)+1}-{int(loan_term_years)} in both scenarios"
         )
         
         custom_adjustable_rate = st.number_input(
@@ -354,7 +374,7 @@ def main():
             step=0.001,
             format="%.3f",
             disabled=not use_custom_adjustable_rate,
-            help="Rate to use for years 8-30 in both scenarios"
+            help=f"Rate to use for years {int(arm_fixed_years)+1}-{int(loan_term_years)} in both scenarios"
         )
         
         st.markdown("---")
@@ -373,9 +393,9 @@ def main():
             This calculator helps you analyze whether refinancing your Adjustable Rate Mortgage (ARM) 
             makes financial sense by comparing total costs over the full loan term or just the ARM periods.
             
-            **Loan Structure: 7/6 ARM**
-            - Years 1-7 (84 months): Fixed rate period
-            - Years 8-30 (276 months): Adjustable rate period
+            **Loan Structure: ARM**
+            - Configurable fixed rate period (e.g., 3, 5, 7, 10 years)
+            - Remaining term: Adjustable rate period
             - Default assumption: Adjustable rate = Initial rate + 5% (cap)
             
             **Comparison Modes:**
@@ -423,8 +443,8 @@ def main():
         new_max_cap = new_arm_rate_dec + 0.05
         custom_adjustable_rate_dec = custom_adjustable_rate / 100
         
-        full_term_months = 360
-        first_period_months = 84
+        full_term_months = int(loan_term_years * 12)
+        first_period_months = int(arm_fixed_years * 12)
         
         # Determine which rates to use for adjustable period
         if use_custom_adjustable_rate:

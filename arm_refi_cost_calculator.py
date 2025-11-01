@@ -7,9 +7,9 @@ USAGE:
     python3 arm_refi_cost_calculator.py
 
 WHAT IT DOES:
-    - Calculates total cost of a 7/6 ARM over 30 years with two rate periods:
-      * Years 1-7: Fixed initial rate
-      * Years 8-30: Adjustable rate (capped at initial rate + 5%)
+    - Calculates total cost of an ARM loan over the full term with two rate periods:
+      * Fixed period (configurable, e.g., 3, 5, 7, 10 years): Fixed initial rate
+      * Adjustable period (remaining years): Adjustable rate (capped at initial rate + 5%)
     
     - Models refinancing scenario:
       * Pay on original loan until specified month
@@ -28,13 +28,15 @@ HOW TO USE:
     1. Scroll down to "ADJUSTABLE VARIABLES" section (around line 380)
     2. Modify the following parameters:
        - loan_amount: Original loan amount ($1,288,000 by default)
+       - loan_term_years: Total loan term (30 years by default)
+       - arm_fixed_years: ARM fixed period (7 years by default, can be 3, 5, 7, 10, etc.)
        - current_arm_rate: Current ARM initial rate (4.875% = 0.04875)
        - months_before_refi: When to refinance (24 months = 2 years)
        - new_arm_rate: New ARM rate if refinancing (4% = 0.04)
        - refi_cost: Refinancing costs ($2,000 by default)
-       - compare_arm_only: True for ARM periods only, False for full 30-year
-       - use_custom_adjustable_rate: True to use custom rate for years 8-30
-       - custom_adjustable_rate: Rate for years 8-30 in both scenarios
+       - compare_arm_only: True for ARM periods only, False for full term
+       - use_custom_adjustable_rate: True to use custom rate for adjustable period
+       - custom_adjustable_rate: Rate for adjustable period in both scenarios
     3. Run the script
     4. Review comprehensive comparison and insights
 
@@ -68,8 +70,8 @@ ASSUMPTIONS:
     - Rates remain constant during each period
     - No prepayments or extra payments
     - No tax considerations
-    - Full 30-year term (360 months)
-    - 7-year fixed period (84 months) for both original and new ARMs
+    - Full loan term (configurable, default 30 years/360 months)
+    - ARM fixed period (configurable, default 7 years/84 months) for both original and new ARMs
 """
 
 def monthly_payment(principal, annual_rate, months):
@@ -385,8 +387,11 @@ def find_breakeven_rate_arm_only(loan_amount, original_rate, target_arm_interest
 # ============================================================================
 
 loan_amount = 1288000
-full_term_months = 360       # 30 years
-first_period_months = 84     # 7 years fixed rate period
+loan_term_years = 30         # Total loan term (typically 30)
+arm_fixed_years = 7          # ARM fixed rate period (e.g., 3, 5, 7, 10)
+
+full_term_months = loan_term_years * 12       # Total months
+first_period_months = arm_fixed_years * 12    # Fixed rate period in months
 
 # Original ARM parameters
 current_arm_rate = 0.04875   # 4.875% initial rate
@@ -399,11 +404,11 @@ new_max_cap = new_arm_rate + 0.05  # New cap
 refi_cost = 2000             # Refinancing costs - ADJUST THIS
 
 # Comparison mode
-compare_arm_only = False     # True: Compare ARM periods only, False: Compare full 30-year cost
+compare_arm_only = False     # True: Compare ARM periods only, False: Compare full loan term cost
 
-# Custom rate for adjustable period (years 8-30)
+# Custom rate for adjustable period (after fixed period ends)
 use_custom_adjustable_rate = False  # True: Use custom rate instead of cap rates
-custom_adjustable_rate = 0.045      # Rate to use for both scenarios in years 8-30 (e.g., 0.045 = 4.5%)
+custom_adjustable_rate = 0.045      # Rate to use for both scenarios after fixed period (e.g., 0.045 = 4.5%)
 
 # ============================================================================
 # CALCULATIONS

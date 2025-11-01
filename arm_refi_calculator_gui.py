@@ -276,6 +276,8 @@ class ARMCalculatorGUI:
         # Default values
         defaults = {
             'loan_amount': 1288000,
+            'loan_term_years': 30,
+            'arm_fixed_years': 7,
             'current_arm_rate': 4.875,
             'months_before_refi': 24,
             'new_arm_rate': 4.0,
@@ -316,6 +318,20 @@ class ARMCalculatorGUI:
         self.loan_amount = tk.StringVar(value=str(defaults['loan_amount']))
         ttk.Entry(input_frame, textvariable=self.loan_amount, width=20).grid(row=row, column=1, sticky=tk.W, padx=5)
         ttk.Label(input_frame, text="e.g., 1288000", foreground="gray").grid(row=row, column=2, sticky=tk.W)
+        row += 1
+        
+        # Loan Term Years
+        ttk.Label(input_frame, text="Loan Term (years):").grid(row=row, column=0, sticky=tk.W, pady=3)
+        self.loan_term_years = tk.StringVar(value=str(defaults['loan_term_years']))
+        ttk.Entry(input_frame, textvariable=self.loan_term_years, width=20).grid(row=row, column=1, sticky=tk.W, padx=5)
+        ttk.Label(input_frame, text="e.g., 30", foreground="gray").grid(row=row, column=2, sticky=tk.W)
+        row += 1
+        
+        # ARM Fixed Period Years
+        ttk.Label(input_frame, text="ARM Fixed Period (years):").grid(row=row, column=0, sticky=tk.W, pady=3)
+        self.arm_fixed_years = tk.StringVar(value=str(defaults['arm_fixed_years']))
+        ttk.Entry(input_frame, textvariable=self.arm_fixed_years, width=20).grid(row=row, column=1, sticky=tk.W, padx=5)
+        ttk.Label(input_frame, text="e.g., 3, 5, 7, 10", foreground="gray").grid(row=row, column=2, sticky=tk.W)
         row += 1
         
         # Current ARM Rate
@@ -402,6 +418,8 @@ class ARMCalculatorGUI:
         try:
             return {
                 'loan_amount': float(self.loan_amount.get()),
+                'loan_term_years': int(self.loan_term_years.get()),
+                'arm_fixed_years': int(self.arm_fixed_years.get()),
                 'current_arm_rate': float(self.current_arm_rate.get()),
                 'new_arm_rate': float(self.new_arm_rate.get()),
                 'months_before_refi': int(self.months_before_refi.get()),
@@ -420,12 +438,17 @@ class ARMCalculatorGUI:
             
             if values['loan_amount'] <= 0:
                 raise ValueError("Loan amount must be positive")
+            if values['loan_term_years'] <= 0 or values['loan_term_years'] > 50:
+                raise ValueError("Loan term must be between 1 and 50 years")
+            if values['arm_fixed_years'] <= 0 or values['arm_fixed_years'] > values['loan_term_years']:
+                raise ValueError(f"ARM fixed period must be between 1 and {values['loan_term_years']} years")
             if values['current_arm_rate'] <= 0 or values['current_arm_rate'] >= 100:
                 raise ValueError("Current ARM rate must be between 0 and 100")
             if values['new_arm_rate'] <= 0 or values['new_arm_rate'] >= 100:
                 raise ValueError("New ARM rate must be between 0 and 100")
-            if values['months_before_refi'] <= 0 or values['months_before_refi'] >= 360:
-                raise ValueError("Refinance timing must be between 1 and 359 months")
+            max_refi_months = values['arm_fixed_years'] * 12
+            if values['months_before_refi'] <= 0 or values['months_before_refi'] > max_refi_months:
+                raise ValueError(f"Refinance timing must be between 1 and {max_refi_months} months")
             if values['refi_cost'] < 0:
                 raise ValueError("Refinance cost cannot be negative")
             if values['custom_adjustable_rate'] <= 0 or values['custom_adjustable_rate'] >= 100:
@@ -465,8 +488,8 @@ class ARMCalculatorGUI:
             use_custom_adjustable_rate = values['use_custom_adjustable_rate']
             custom_adjustable_rate = values['custom_adjustable_rate'] / 100
             
-            full_term_months = 360
-            first_period_months = 84
+            full_term_months = values['loan_term_years'] * 12
+            first_period_months = values['arm_fixed_years'] * 12
             
             # Determine which rates to use for adjustable period
             if use_custom_adjustable_rate:

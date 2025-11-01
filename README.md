@@ -10,11 +10,12 @@ A comprehensive calculator for analyzing ARM (Adjustable Rate Mortgage) refinanc
 
 ## 🌟 Features
 
-- **7/6 ARM Analysis**: Calculates costs for loans with 7-year fixed period, 23-year adjustable period
+- **Configurable ARM Analysis**: Support for any ARM type (3/1, 5/1, 7/1, 10/1, etc.) with customizable fixed periods
+- **Flexible Loan Terms**: Configure loan term (15, 20, 30 years) and ARM fixed period independently
 - **Comprehensive Comparison**: Compare keeping original loan vs. refinancing
 - **Breakeven Rate Analysis**: Find the exact rate where refinancing becomes beneficial
 - **Multiple Comparison Modes**:
-  - Full 30-year cost comparison
+  - Full loan term cost comparison
   - ARM periods only (great for those planning to sell/refi early)
   - Custom adjustable rate scenarios
 - **Timing Analysis**: See how refinancing at different times affects savings
@@ -283,9 +284,16 @@ streamlit run streamlit_app.py --server.address 0.0.0.0
 
 ## 📊 Key Concepts
 
-### ARM Structure (7/6 ARM)
-- **Years 1-7** (84 months): Fixed at initial rate (e.g., 4.875%)
-- **Years 8-30** (276 months): Adjustable, capped at initial + 5% (e.g., 9.875%)
+### ARM Structure (Configurable)
+- **Fixed Period** (configurable: 3, 5, 7, 10 years, etc.): Fixed at initial rate (e.g., 4.875%)
+- **Adjustable Period** (remaining years): Adjustable, capped at initial + 5% (e.g., 9.875%)
+- **Loan Term** (configurable: 15, 20, 30 years, etc.): Total loan duration
+
+**Examples:**
+- 3/1 ARM: 3 years fixed, then adjustable
+- 5/1 ARM: 5 years fixed, then adjustable
+- 7/1 ARM: 7 years fixed, then adjustable (default)
+- 10/1 ARM: 10 years fixed, then adjustable
 
 ### Comparison Modes
 
@@ -397,6 +405,8 @@ streamlit run streamlit_app.py --server.address 0.0.0.0
 - `ARM_CALCULATOR_GUI_README.md` - Desktop GUI documentation
 - `ARM_CALCULATOR_FEATURES.md` - Feature explanations
 - `COMPARISON_MODE_GUIDE.md` - Comparison mode details
+- `ARM_TYPES_GUIDE.md` - **NEW!** Guide to different ARM types (3/1, 5/1, 7/1, 10/1)
+- `CONFIGURABLE_ARM_PERIOD_ENHANCEMENT.md` - **NEW!** Details on configurable ARM periods
 
 ### Example Outputs
 All versions produce similar results with different presentation:
