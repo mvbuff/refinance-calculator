@@ -100,11 +100,12 @@ class ARMCalculator:
         
         # Step 2: New loan = remaining balance only (refi cost is separate expense)
         new_loan_amount = balance_at_refi
-        remaining_months = total_months - refi_month
+        # New loan gets a full term (e.g., new 30-year loan)
+        new_loan_term_months = total_months
         
         # Step 3: New loan Phase 1
-        new_phase1_months = min(first_period_months, remaining_months)
-        monthly_new_phase1 = ARMCalculator.monthly_payment(new_loan_amount, new_rate, remaining_months)
+        new_phase1_months = min(first_period_months, new_loan_term_months)
+        monthly_new_phase1 = ARMCalculator.monthly_payment(new_loan_amount, new_rate, new_loan_term_months)
         
         r_new = new_rate / 12
         balance = new_loan_amount
@@ -122,8 +123,8 @@ class ARMCalculator:
         total_paid_new_phase1 = monthly_new_phase1 * new_phase1_months
         
         # Step 4: New loan Phase 2
-        if remaining_months > new_phase1_months:
-            new_phase2_months = remaining_months - new_phase1_months
+        if new_loan_term_months > new_phase1_months:
+            new_phase2_months = new_loan_term_months - new_phase1_months
             monthly_new_phase2 = ARMCalculator.monthly_payment(balance_after_new_phase1, new_cap, new_phase2_months)
             
             r_cap = new_cap / 12

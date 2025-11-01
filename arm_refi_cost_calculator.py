@@ -193,11 +193,12 @@ def calculate_refinance_scenario(loan_amount, original_rate, original_cap,
     
     # Step 2: New loan = remaining balance only (refi cost is separate expense)
     new_loan_amount = balance_at_refi
-    remaining_months = total_months - refi_month  # Total remaining time
+    # New loan gets a full term (e.g., new 30-year loan)
+    new_loan_term_months = total_months
     
-    # Step 3: New loan Phase 1 - 7 years at new fixed rate (or less if not enough time)
-    new_phase1_months = min(first_period_months, remaining_months)
-    monthly_new_phase1 = monthly_payment(new_loan_amount, new_rate, remaining_months)
+    # Step 3: New loan Phase 1 - fixed period at new rate
+    new_phase1_months = min(first_period_months, new_loan_term_months)
+    monthly_new_phase1 = monthly_payment(new_loan_amount, new_rate, new_loan_term_months)
     
     # Calculate balance after new loan phase 1
     r_new = new_rate / 12
@@ -216,8 +217,8 @@ def calculate_refinance_scenario(loan_amount, original_rate, original_cap,
     total_paid_new_phase1 = monthly_new_phase1 * new_phase1_months
     
     # Step 4: New loan Phase 2 - remaining time at capped rate
-    if remaining_months > new_phase1_months:
-        new_phase2_months = remaining_months - new_phase1_months
+    if new_loan_term_months > new_phase1_months:
+        new_phase2_months = new_loan_term_months - new_phase1_months
         monthly_new_phase2 = monthly_payment(balance_after_new_phase1, new_cap, new_phase2_months)
         
         # Calculate totals for phase 2
@@ -261,7 +262,7 @@ def calculate_refinance_scenario(loan_amount, original_rate, original_cap,
         'interest_new_phase2': total_interest_new_phase2,
         'principal_new_phase2': total_principal_new_phase2,
         'new_phase1_months': new_phase1_months,
-        'new_phase2_months': remaining_months - new_phase1_months if remaining_months > new_phase1_months else 0,
+        'new_phase2_months': new_phase2_months,
         'total_paid': total_cost,
         'total_interest': total_interest
     }
